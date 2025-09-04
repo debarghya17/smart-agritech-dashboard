@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* AgriTech Dark Theme */
+    --background: 210 25% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 210 25% 12%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 210 25% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 210 25% 15%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 210 25% 16%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 200 95% 55%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 25% 18%;
+    --input: 210 25% 16%;
+    --ring: 142 76% 36%;
+
+    /* Agricultural color palette */
+    --agri-green: 142 76% 36%;
+    --agri-green-light: 142 60% 45%;
+    --agri-blue: 200 95% 55%;
+    --agri-yellow: 45 93% 55%;
+    --agri-orange: 25 95% 53%;
+    --agri-purple: 270 91% 65%;
+    --agri-red: 0 84% 60%;
+
+    /* Status colors */
+    --status-good: 142 76% 36%;
+    --status-warning: 45 93% 55%;
+    --status-critical: 0 84% 60%;
+
+    /* Glassmorphism */
+    --glass-bg: 210 25% 12% / 0.8;
+    --glass-border: 0 0% 100% / 0.1;
+    --glass-shadow: 0 0% 0% / 0.3;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-x-hidden;
+  }
+
+  /* Glassmorphism effects */
+  .glass-card {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl;
+  }
+
+  .glass-header {
+    @apply backdrop-blur-md bg-black/20 border-b border-white/10;
+  }
+
+  /* Status indicators */
+  .status-good {
+    @apply bg-green-500/20 text-green-400 border-green-500/30;
+  }
+
+  .status-warning {
+    @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/30;
+  }
+
+  .status-critical {
+    @apply bg-red-500/20 text-red-400 border-red-500/30;
+  }
+
+  /* Background pattern */
+  .farm-bg {
+    background-image: 
+      linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)),
+      url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDRoOG0tOCAwaC04djhoOGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0aDh2LThoLThaIiBmaWxsPSJyZ2JhKDAsIDAsIDAsIDAuMDUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2EpIi8+PC9zdmc+');
+    background-attachment: fixed;
+    background-size: 120px 120px;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-black/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(142 76% 36%), hsl(142 60% 45%));
+    @apply rounded-full border border-white/10;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(142 60% 45%), hsl(142 76% 36%));
+    @apply border-white/20;
+  }
+
+  /* Chat specific scrollbar */
+  .chat-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(142 76% 36%), hsl(142 60% 45%));
+    @apply rounded-full;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(142 60% 45%), hsl(142 76% 36%));
+  }
+
+  /* Scroll restoration and top positioning */
+  html {
+    scroll-behavior: smooth;
+    scroll-restoration: manual;
+    scroll-padding-top: 0;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    scroll-behavior: auto;
+  }
+
+  /* Ensure page starts at top on load/refresh */
+  html, body {
+    scroll-behavior: auto !important;
+  }
+
+  /* Override any auto-scroll behavior */
+  .dashboard-container {
+    scroll-behavior: auto !important;
+  }
+
+  /* Ensure root starts at top */
+  #root {
+    scroll-margin-top: 0;
+  }
+}
