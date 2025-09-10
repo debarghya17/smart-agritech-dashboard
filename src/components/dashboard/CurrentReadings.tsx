@@ -1,9 +1,11 @@
 import React from 'react';
-import { Droplets, Thermometer, Wind, Zap, Sun, CloudRain, Leaf, Beaker, Target, Download } from 'lucide-react';
+import { Droplets, Thermometer, Wind, Zap, Sun, CloudRain, Leaf, Beaker, Target, Download, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SensorData, DashboardMode } from '../AgriTechDashboard';
+import { DeviceConnectionDialog } from './DeviceConnectionDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface CurrentReadingsProps {
   data: SensorData;
@@ -71,6 +73,16 @@ const downloadCSV = (data: SensorData) => {
 };
 
 export const CurrentReadings: React.FC<CurrentReadingsProps> = ({ data, mode }) => {
+  const { toast } = useToast();
+
+  const handleDeviceConnect = (deviceId: string) => {
+    toast({
+      title: "Device Connected",
+      description: `Connected to device ${deviceId}. Real-time data will now be available.`,
+    });
+    // In real implementation, this would establish connection and start data streaming
+  };
+
   return (
     <Card className="glass-card">
       <CardHeader>
@@ -108,7 +120,7 @@ export const CurrentReadings: React.FC<CurrentReadingsProps> = ({ data, mode }) 
           })}
         </div>
 
-        <div className="flex pt-4 border-t border-white/10">
+        <div className="flex gap-3 pt-4 border-t border-white/10">
           <Button 
             variant="outline" 
             size="sm" 
@@ -118,6 +130,19 @@ export const CurrentReadings: React.FC<CurrentReadingsProps> = ({ data, mode }) 
             <Download className="w-4 h-4 mr-2" />
             Download CSV
           </Button>
+          
+          {mode === 'realtime' && (
+            <DeviceConnectionDialog onDeviceConnect={handleDeviceConnect}>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-white border-white/20 hover:bg-white/10"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Find Devices
+              </Button>
+            </DeviceConnectionDialog>
+          )}
         </div>
       </CardContent>
     </Card>

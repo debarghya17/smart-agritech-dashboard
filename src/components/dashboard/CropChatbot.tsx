@@ -12,58 +12,57 @@ interface Message {
   timestamp: Date;
 }
 
+interface CropChatbotProps {}
+
 // ✅ Initialize Gemini AI
 const genAI = new GoogleGenerativeAI('AIzaSyDsSvei5SyC6tp2PDinonjkxi7AvVCUsLY');
 
-// ✅ Create one chat session that keeps context
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-const chatSession = model.startChat({
-  history: [
-    {
-      role: 'user',
-      parts: [{ text: "You are AgriBot, a helpful agricultural assistant." }],
-    },
-    {
-      role: 'model',
-      parts: [{ text: "Hello! I’m AgriBot 🌱. How can I help you today?" }],
-    },
-  ],
-  generationConfig: {
-    temperature: 0.7,
-    topP: 0.8,
-    maxOutputTokens: 512,
-  },
-});
-
 const generateBotResponse = async (userMessage: string): Promise<string> => {
   try {
-    const result = await chatSession.sendMessage(userMessage);
-    const text =
-      result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.9,
+        maxOutputTokens: 256,
+        responseMimeType: "text/plain",
+      },
+    });
 
-    if (!text) throw new Error('Empty Gemini response');
-    return text;
+    const prompt = `You are Crop Chatbot, developed by Sahina Sabnam and Debarghya Bhowmick.
+Reply briefly (max 2–3 sentences).
+Focus only on farming, crops, or agriculture.
+User: ${userMessage}
+Reply:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    return text && text.trim().length > 0 ? text.trim() : "I couldn't generate a proper reply. Please try again.";
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    return 'Sorry, I’m having trouble right now. Please try again.';
+    console.error("Gemini API Error:", error);
+    return "I'm facing some technical issues. Please try again later.";
   }
 };
 
-export const CropChatbot: React.FC = () => {
+export const CropChatbot: React.FC<CropChatbotProps> = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I’m AgriBot 🌱. I can chat with you about crops, farming, or anything else.",
+      text: "Hi 👋 I'm Crop Chatbot, developed by Sahina Sabnam and Debarghya Bhowmick. How can I help you today?",
       sender: 'bot',
-      timestamp: new Date(),
-    },
+      timestamp: new Date()
+    }
   ]);
   const [inputText, setInputText] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
 
   useEffect(() => {
@@ -77,10 +76,10 @@ export const CropChatbot: React.FC = () => {
       id: Date.now().toString(),
       text: inputText,
       sender: 'user',
-      timestamp: new Date(),
+      timestamp: new Date()
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setIsThinking(true);
 
     try {
@@ -89,38 +88,38 @@ export const CropChatbot: React.FC = () => {
         id: (Date.now() + 1).toString(),
         text: response,
         sender: 'bot',
-        timestamp: new Date(),
+        timestamp: new Date()
       };
-      setMessages((prev) => [...prev, botResponse]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          text: 'I am facing technical issues. Please try again later.',
-          sender: 'bot',
-          timestamp: new Date(),
-        },
-      ]);
+      setMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        text: "I'm experiencing technical difficulties. Please try again later.",
+        sender: 'bot',
+        timestamp: new Date()
+      }]);
     } finally {
       setIsThinking(false);
-      setInputText('');
     }
+
+    setInputText('');
   };
 
   const clearChat = () => {
     setMessages([
       {
         id: '1',
-        text: "Hello! I’m your Crop Chatbot. I can chat with you about crops, farming or anything else.",
+        text: "Hi 👋 I'm Crop Chatbot, developed by Sahina Sabnam and Debarghya Bhowmick. How can I help you today?",
         sender: 'bot',
-        timestamp: new Date(),
-      },
+        timestamp: new Date()
+      }
     ]);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
   };
 
   return (
@@ -140,12 +139,15 @@ export const CropChatbot: React.FC = () => {
             <Trash2 className="w-4 h-4" />
           </Button>
         </CardTitle>
-        <p className="text-sm text-gray-400">Conversational AI powered by Gemini</p>
+        <p className="text-sm text-gray-400">Developed by Sahina Sabnam & Debarghya Bhowmick</p>
       </CardHeader>
       <CardContent>
         <div className="h-64 overflow-y-auto mb-4 space-y-3 chat-scrollbar">
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              key={message.id}
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
               <div
                 className={`max-w-[80%] p-3 rounded-lg ${
                   message.sender === 'user'
@@ -154,9 +156,13 @@ export const CropChatbot: React.FC = () => {
                 }`}
               >
                 <div className="flex items-start space-x-2">
-                  {message.sender === 'bot' && <Bot className="w-4 h-4 mt-0.5 text-green-400 flex-shrink-0" />}
-                  {message.sender === 'user' && <User className="w-4 h-4 mt-0.5 text-white flex-shrink-0" />}
-                  <div className="text-sm">{message.text}</div>
+                  {message.sender === 'bot' && (
+                    <Bot className="w-4 h-4 mt-0.5 text-green-400 flex-shrink-0" />
+                  )}
+                  {message.sender === 'user' && (
+                    <User className="w-4 h-4 mt-0.5 text-white flex-shrink-0" />
+                  )}
+                  <div className="text-sm leading-relaxed">{message.text}</div>
                 </div>
               </div>
             </div>
@@ -183,7 +189,7 @@ export const CropChatbot: React.FC = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me about crops, farming, or anything else..."
+            placeholder="Ask me anything about farming, crops, or agriculture..."
             className="flex-1 bg-black/20 border-white/20 text-white placeholder-gray-400"
           />
           <Button onClick={sendMessage} size="sm" className="px-3">

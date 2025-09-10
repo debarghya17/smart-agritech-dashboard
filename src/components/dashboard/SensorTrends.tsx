@@ -33,6 +33,13 @@ const sensorLabels = {
 };
 
 export const SensorTrends: React.FC<SensorTrendsProps> = ({ data }) => {
+  // Check if we have meaningful data (not just empty timestamp objects)
+  const hasValidData = data && data.length > 0 && data.some(item => 
+    item.soil_moisture !== undefined || 
+    item.temperature !== undefined || 
+    item.humidity !== undefined
+  );
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({
     soil_moisture: true,
@@ -46,13 +53,14 @@ export const SensorTrends: React.FC<SensorTrendsProps> = ({ data }) => {
     potassium: false,
   });
 
+
   const toggleSeries = (key: string) => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || data.length === 0) return;
+    if (!canvas || !hasValidData) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -132,7 +140,7 @@ export const SensorTrends: React.FC<SensorTrendsProps> = ({ data }) => {
     ctx.rotate(-Math.PI / 2);
     ctx.fillText('Sensor Values', 0, 0);
     ctx.restore();
-  }, [data, visibleSeries]);
+  }, [data, visibleSeries, hasValidData]);
 
   return (
     <Card className="glass-card">
@@ -144,38 +152,46 @@ export const SensorTrends: React.FC<SensorTrendsProps> = ({ data }) => {
         <p className="text-sm text-gray-400">Last 24 hours</p>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-64 rounded-lg bg-black/20"
-            style={{ width: '100%', height: '256px' }}
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-          {Object.entries(sensorLabels).map(([key, label]) => (
-            <div key={key} className="flex items-center space-x-2">
-              <Checkbox
-                id={key}
-                checked={visibleSeries[key]}
-                onCheckedChange={() => toggleSeries(key)}
-                className="border-white/20"
+        {hasValidData ? (
+          <>
+            <div className="mb-4">
+              <canvas
+                ref={canvasRef}
+                className="w-full h-64 rounded-lg bg-black/20"
+                style={{ width: '100%', height: '256px' }}
               />
-              <div className="flex items-center space-x-1">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: sensorColors[key as keyof typeof sensorColors] }}
-                />
-                <label
-                  htmlFor={key}
-                  className="text-sm text-gray-300 cursor-pointer"
-                >
-                  {label}
-                </label>
-              </div>
             </div>
-          ))}
-        </div>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+              {Object.entries(sensorLabels).map(([key, label]) => (
+                <div key={key} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={key}
+                    checked={visibleSeries[key]}
+                    onCheckedChange={() => toggleSeries(key)}
+                    className="border-white/20"
+                  />
+                  <div className="flex items-center space-x-1">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: sensorColors[key as keyof typeof sensorColors] }}
+                    />
+                    <label
+                      htmlFor={key}
+                      className="text-sm text-gray-300 cursor-pointer"
+                    >
+                      {label}
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="h-64 flex items-center justify-center">
+            <p className="text-gray-400">No sensor data available</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
