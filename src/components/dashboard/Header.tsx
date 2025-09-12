@@ -99,23 +99,45 @@ export const Header: React.FC<HeaderProps> = ({ mode, onModeChange, onRefreshDat
     // Inject custom styles for Google Translate widget
     injectTranslateStyles();
     
-    // Add a delay to ensure the Google Translate widget is loaded
-    const timer = setTimeout(() => {
-      const translateElement = document.getElementById('google_translate_element');
-      if (translateElement && !translateElement.hasChildNodes()) {
-        // Reinitialize if not loaded
-        if (window.google && window.google.translate) {
-          new window.google.translate.TranslateElement({
-            pageLanguage: 'en',
-            includedLanguages: 'en,hi,bn,te,mr,ta,ur,gu,kn,or,ml,pa,as,mai,sat,ks,sa,kok,doi,mni,bo,ne',
-            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-            autoDisplay: false
-          }, 'google_translate_element');
-        }
+    // Load Google Translate script dynamically and initialize immediately
+    const loadTranslateScript = () => {
+      if (!document.querySelector('script[src*="translate.google.com"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        document.head.appendChild(script);
+        
+        // Make initialization function globally available
+        (window as any).googleTranslateElementInit = () => {
+          if (window.google && window.google.translate) {
+            new window.google.translate.TranslateElement({
+              pageLanguage: 'en',
+              includedLanguages: 'en,hi,bn,te,mr,ta,ur,gu,kn,or,ml,pa,as,mai,sat,ks,sa,kok,doi,mni,bo,ne',
+              layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+              autoDisplay: false
+            }, 'google_translate_element');
+          }
+        };
+      } else {
+        // Script already loaded, just initialize
+        const timer = setTimeout(() => {
+          if (window.google && window.google.translate) {
+            const translateElement = document.getElementById('google_translate_element');
+            if (translateElement && !translateElement.hasChildNodes()) {
+              new window.google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'en,hi,bn,te,mr,ta,ur,gu,kn,or,ml,pa,as,mai,sat,ks,sa,kok,doi,mni,bo,ne',
+                layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+              }, 'google_translate_element');
+            }
+          }
+        }, 100);
+        return () => clearTimeout(timer);
       }
-    }, 1000);
+    };
 
-    return () => clearTimeout(timer);
+    loadTranslateScript();
   }, []);
 
   return (

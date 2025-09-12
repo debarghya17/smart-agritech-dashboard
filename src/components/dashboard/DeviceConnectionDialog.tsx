@@ -30,36 +30,84 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
   const [selectedConnectionType, setSelectedConnectionType] = useState<'wifi' | 'bluetooth' | 'usb'>('wifi');
   const { toast } = useToast();
 
-  // Simulated device discovery - In real implementation, this would use WebSerial, WebBluetooth, or network discovery
-  const simulateDeviceDiscovery = () => {
-    const mockDevices: IoTDevice[] = [
-      {
-        id: 'esp32-001',
-        name: 'Farm Sensor Node 1',
-        type: 'ESP32',
-        status: 'disconnected',
-        sensors: ['temperature', 'humidity', 'soil_moisture'],
-        lastSeen: new Date(Date.now() - 5 * 60 * 1000)
-      },
-      {
-        id: 'esp32-002', 
-        name: 'Weather Station',
-        type: 'ESP32',
-        status: 'disconnected',
-        sensors: ['temperature', 'humidity', 'rainfall', 'light_intensity'],
-        lastSeen: new Date(Date.now() - 2 * 60 * 1000)
-      },
-      {
-        id: 'arduino-001',
-        name: 'Soil Monitor',
-        type: 'Arduino',
-        status: 'disconnected',
-        sensors: ['ph_level', 'nitrogen', 'phosphorous', 'potassium'],
-        lastSeen: new Date(Date.now() - 10 * 60 * 1000)
-      }
-    ];
+  // Real device discovery using Web APIs
+  const discoverRealDevices = async (connectionType: 'wifi' | 'bluetooth' | 'usb'): Promise<IoTDevice[]> => {
+    const devices: IoTDevice[] = [];
     
-    return mockDevices;
+    try {
+      if (connectionType === 'usb' && 'serial' in navigator) {
+        // Request access to serial ports
+        const ports = await (navigator as any).serial.getPorts();
+        ports.forEach((port: any, index: number) => {
+          devices.push({
+            id: `usb-${index}`,
+            name: `USB Device ${index + 1}`,
+            type: 'Arduino' as const,
+            status: 'disconnected' as const,
+            sensors: ['temperature', 'humidity', 'soil_moisture'],
+            lastSeen: new Date()
+          });
+        });
+      } else if (connectionType === 'bluetooth' && 'bluetooth' in navigator) {
+        // Scan for Bluetooth LE devices
+        try {
+          const device = await (navigator as any).bluetooth.requestDevice({
+            filters: [
+              { services: ['environmental_sensing'] },
+              { namePrefix: 'ESP32' },
+              { namePrefix: 'Arduino' }
+            ],
+            optionalServices: ['battery_service', 'device_information']
+          });
+          
+          if (device) {
+            devices.push({
+              id: device.id || `bluetooth-${Date.now()}`,
+              name: device.name || 'Bluetooth Device',
+              type: 'ESP32' as const,
+              status: 'disconnected' as const,
+              sensors: ['temperature', 'humidity', 'light_intensity'],
+              lastSeen: new Date()
+            });
+          }
+        } catch (btError) {
+          console.log('Bluetooth scan cancelled or failed:', btError);
+        }
+      } else if (connectionType === 'wifi') {
+        // Network discovery using mDNS (limited in browsers)
+        // This is a simplified approach - real implementation would require backend
+        const commonPorts = [80, 8080, 3000, 5000];
+        const localIPs = ['192.168.1.', '192.168.0.', '10.0.0.'];
+        
+        // Try to discover devices on common local network ranges
+        for (const ipPrefix of localIPs) {
+          for (let i = 100; i <= 110; i++) {
+            try {
+              const response = await fetch(`http://${ipPrefix}${i}/status`, {
+                method: 'GET',
+                mode: 'no-cors',
+                signal: AbortSignal.timeout(1000)
+              });
+              
+              devices.push({
+                id: `wifi-${ipPrefix}${i}`,
+                name: `ESP32 Node ${ipPrefix}${i}`,
+                type: 'ESP32' as const,
+                status: 'disconnected' as const,
+                sensors: ['temperature', 'humidity', 'soil_moisture'],
+                lastSeen: new Date()
+              });
+            } catch (error) {
+              // Device not found at this IP
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Device discovery error:', error);
+    }
+    
+    return devices;
   };
 
   const scanForDevices = async () => {
@@ -111,11 +159,8 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
         // Real network discovery would use mDNS or specific protocols
       }
 
-      // Simulate scanning delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For demo purposes, show mock devices
-      const discoveredDevices = simulateDeviceDiscovery();
+      // Discover real devices
+      const discoveredDevices = await discoverRealDevices(selectedConnectionType);
       setDevices(discoveredDevices);
       
       toast({
@@ -173,7 +218,7 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gray-900/95 border-gray-700">
+      <DialogContent className="max-w-[95vw] w-full sm:max-w-lg md:max-w-2xl max-h-[85vh] overflow-y-auto bg-gray-900/95 border-gray-700 mx-2 sm:mx-0">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center">
             <Search className="w-5 h-5 mr-2 text-blue-400" />
@@ -185,7 +230,7 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
           {/* Connection Type Selection */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-300">Connection Type</h3>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               {[
                 { type: 'wifi' as const, label: 'WiFi/Network', icon: Wifi },
                 { type: 'bluetooth' as const, label: 'Bluetooth LE', icon: Bluetooth },
@@ -196,7 +241,7 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
                   variant={selectedConnectionType === type ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedConnectionType(type)}
-                  className="text-xs"
+                  className="text-xs flex-1 sm:flex-none"
                 >
                   <Icon className="w-3 h-3 mr-1" />
                   {label}
@@ -231,17 +276,17 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
               <div className="space-y-2">
                 {devices.map((device) => (
                   <Card key={device.id} className="bg-black/20 border-gray-700">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-medium text-white">{device.name}</h4>
-                            <Badge variant="outline" className="text-xs">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                            <h4 className="text-sm font-medium text-white truncate">{device.name}</h4>
+                            <Badge variant="outline" className="text-xs flex-shrink-0">
                               {device.type}
                             </Badge>
                             <Badge 
                               variant={device.status === 'connected' ? 'default' : 'secondary'}
-                              className="text-xs"
+                              className="text-xs flex-shrink-0"
                             >
                               {device.status === 'connected' ? (
                                 <><Wifi className="w-3 h-3 mr-1" /> Connected</>
@@ -252,7 +297,7 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
                               )}
                             </Badge>
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-gray-400 break-words">
                             Sensors: {device.sensors.join(', ')}
                           </div>
                           {device.lastSeen && (
@@ -265,6 +310,7 @@ export const DeviceConnectionDialog: React.FC<DeviceConnectionDialogProps> = ({
                           size="sm"
                           onClick={() => connectToDevice(device)}
                           disabled={device.status === 'connecting' || device.status === 'connected'}
+                          className="w-full sm:w-auto flex-shrink-0"
                         >
                           {device.status === 'connected' ? 'Connected' : 'Connect'}
                         </Button>
