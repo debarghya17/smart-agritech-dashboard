@@ -1,12 +1,18 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Camera, CameraOff, Activity, AlertTriangle, CheckCircle, X, Scan } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DashboardMode } from '../AgriTechDashboard';
+import { usePlantAnalysis, PlantAnalysis as IPlantAnalysis, MLModelConfig } from '@/hooks/usePlantAnalysis';
+import { useCamera } from '@/hooks/useCamera';
 
 interface PlantMonitoringProps {
   mode: DashboardMode;
+  // Optional custom ML model analyzer function
+  customAnalyzer?: (imageData: string | File) => Promise<IPlantAnalysis>;
+  // Optional ML model configuration
+  mlConfig?: MLModelConfig;
 }
 
 interface PlantAnalysis {
@@ -16,7 +22,7 @@ interface PlantAnalysis {
   confidence: number;
 }
 
-const mockAnalysis: PlantAnalysis = {
+const mockAnalysis: IPlantAnalysis = {
   diseaseStatus: 'healthy',
   growthPrediction: 'Optimal growth conditions detected. Expected yield increase of 15% based on current health metrics.',
   recommendations: [
@@ -110,102 +116,62 @@ const analyzeImage = async (imageData: string): Promise<PlantAnalysis> => {
   });
 };
 
-export const PlantMonitoring: React.FC<PlantMonitoringProps> = ({ mode }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [analysis, setAnalysis] = useState<PlantAnalysis | null>(mode === 'simulated' ? mockAnalysis : null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+export const PlantMonitoring: React.FC<PlantMonitoringProps> = ({ 
+  mode, 
+  customAnalyzer,
+  mlConfig 
+}) => {
   const [simulatedImage, setSimulatedImage] = useState<string>(simulatedPlantImages[0]);
   const [hasScanned, setHasScanned] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Use custom hooks for camera and analysis
+  const { 
+    isConnected, 
+    videoRef, 
+    canvasRef, 
+    connectCamera: connectCameraHook, 
+    disconnectCamera: disconnectCameraHook, 
+    captureImage 
+  } = useCamera();
+  
+  const { 
+    analysis, 
+    isAnalyzing, 
+    analyzeImage, 
+    reset: resetAnalysis 
+  } = usePlantAnalysis(customAnalyzer, mlConfig);
 
   const connectCamera = async () => {
-    try {
-      if (mode === 'simulated') {
-        setIsConnected(true);
-        // Use random simulated image
-        const randomImage = simulatedPlantImages[Math.floor(Math.random() * simulatedPlantImages.length)];
-        setSimulatedImage(randomImage);
-        
-        // Simulate analysis
-        setIsAnalyzing(true);
-        setTimeout(() => {
-          setAnalysis(mockAnalysis);
-          setIsAnalyzing(false);
-        }, 2000);
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'environment' // Use back camera on mobile
-        } 
-      });
+    if (mode === 'simulated') {
+      // Use random simulated image
+      const randomImage = simulatedPlantImages[Math.floor(Math.random() * simulatedPlantImages.length)];
+      setSimulatedImage(randomImage);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsConnected(true);
-        // Reset analysis in real mode when connecting
-        setAnalysis(null);
-        setHasScanned(false);
-      }
-    } catch (error) {
-      console.error('Camera access denied:', error);
-      alert('Camera access denied. Please enable camera permissions to use plant monitoring.');
+      // Simulate analysis for demo mode
+      await analyzeImage(randomImage);
+      return;
+    }
+
+    // Real camera connection
+    await connectCameraHook();
+    resetAnalysis();
+    setHasScanned(false);
+  };
+
+  const captureAndAnalyze = async () => {
+    setHasScanned(true);
+    
+    const imageData = await captureImage();
+    if (imageData) {
+      await analyzeImage(imageData);
     }
   };
 
-  const captureAndAnalyze = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    setIsAnalyzing(true);
-    setHasScanned(true);
-    
-    try {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) return;
-      
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      
-      // Draw current video frame to canvas
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Get image data as base64
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // Analyze the captured image
-      const result = await analyzeImage(imageData);
-      setAnalysis(result);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      setAnalysis({
-        diseaseStatus: 'unknown',
-        growthPrediction: 'Analysis failed. Please try again.',
-        recommendations: ['Ensure good lighting', 'Position camera closer to plant'],
-        confidence: 0
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
-
   const disconnectCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    setIsConnected(false);
+    disconnectCameraHook();
     setHasScanned(false);
     if (mode === 'realtime') {
-      setAnalysis(null);
+      resetAnalysis();
     }
   };
 
@@ -347,7 +313,7 @@ export const PlantMonitoring: React.FC<PlantMonitoringProps> = ({ mode }) => {
                   {mode === 'realtime' ? 'Analyzing plant health...' : 'Processing simulation...'}
                 </p>
               </div>
-            ) : analysis && (mode === 'simulated' || hasScanned) ? (
+            ) : analysis && (mode === 'simulated' || (hasScanned && mode === 'realtime')) ? (
               <div className="space-y-3">
                 {/* Disease Status */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-black/20 rounded-lg border border-white/10">
